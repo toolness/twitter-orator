@@ -2,7 +2,7 @@
   "name": "twitter-orator",
   "version": "0.0.1",
   "description": "Says aloud things tweeted at a user.",
-  "main": "say-it-out-loud.js",
+  "main": "orator.js",
   "directories": {
     "test": "test"
   },

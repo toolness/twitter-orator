@@ -1,7 +1,7 @@
 var EventEmitter = require('events').EventEmitter;
 var should = require('should');
 
-var say = require('../say-it-out-loud');
+var say = require('../orator');
 var sample = require('./sample-data');
 
 describe('FriendTracker', function() {
