@@ -77,7 +77,8 @@ exports.FriendTracker = FriendTracker;
 function main() {
   var sayPath = process.env.SAY || '/usr/bin/say';
   var queue = async.queue(function sayIt(msg, cb) {
-    var s = spawn(sayPath, [msg]);
+    var s = spawn(sayPath, ['-f', '-']);
+    s.stdin.end(msg);
     s.on('close', function(code) {
       if (code) return cb(new Error(sayPath + ' exited with code ' + code));
       cb(null);
