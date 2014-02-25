@@ -25,3 +25,10 @@ Then run `node orator.js` and try tweeting at the user identified
 by `SCREEN_NAME`, either via a public tweet or a direct message.
 Make sure that `SCREEN_NAME` is following the tweeter, or else the
 tweet will be ignored.
+
+Note that `SAY_CMD` must be a command-line (including any required
+arguments) that says aloud whatever comes through stdin and exits
+with a status code of 0 once everything is said and end-of-file is
+reached. By default [say][] on OS X is used.
+
+  [say]: https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/say.1.html
