@@ -1,5 +1,5 @@
 var EventEmitter = require('events').EventEmitter;
-var spawn = require('child_process').spawn;
+var exec = require('child_process').exec;
 var twitter = require('twitter');
 var async = require('async');
 
@@ -75,14 +75,10 @@ exports.Orator = Orator;
 exports.FriendTracker = FriendTracker;
 
 function main() {
-  var sayPath = process.env.SAY || '/usr/bin/say';
+  var sayPath = process.env.SAY_CMD || '/usr/bin/say -f -';
   var queue = async.queue(function sayIt(msg, cb) {
-    var s = spawn(sayPath, ['-f', '-']);
+    var s = exec(sayPath, cb);
     s.stdin.end(msg);
-    s.on('close', function(code) {
-      if (code) return cb(new Error(sayPath + ' exited with code ' + code));
-      cb(null);
-    });
   }, 1);
   var say = function(msg) {
     queue.push(msg, function(err) {

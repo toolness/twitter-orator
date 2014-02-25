@@ -13,7 +13,7 @@ access token.
 Then define some environment variables:
 
 ```
-export SAY='/usr/bin/say'
+export SAY_CMD='/usr/bin/say -f -'
 export SCREEN_NAME='mozbrooklyn'
 export CONSUMER_KEY='xxxxxxxx'
 export CONSUMER_SECRET='xxxxxxxx'
