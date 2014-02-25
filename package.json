@@ -15,7 +15,7 @@
     "mocha": "~1.17.1"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha -R spec"
   },
   "author": "Atul Varma <varmaa@gmail.com>",
   "license": "BSD-2-Clause"
