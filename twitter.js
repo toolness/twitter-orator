@@ -1,6 +1,6 @@
 var split = require('split');
 var through = require('through');
-var OAuth = require('OAuth');
+var OAuth = require('oauth');
 
 // Much of the following code is based on recommendations mentioned here:
 //
