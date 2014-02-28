@@ -1,7 +1,7 @@
 var EventEmitter = require('events').EventEmitter;
 var exec = require('child_process').exec;
-var twitter = require('twitter');
 var async = require('async');
+var twitter = require('./twitter');
 
 function FriendTracker(stream, screenName) {
   var friends = {};
@@ -92,19 +92,24 @@ function main() {
     access_token_key: process.env.ACCESS_TOKEN_KEY,
     access_token_secret: process.env.ACCESS_TOKEN_SECRET
   });
+  var stream = twit.streamUser();
+  var friendTracker = FriendTracker(stream, process.env.SCREEN_NAME);
+  var orator = Orator(friendTracker, stream);
 
-  twit.stream('user', function(stream) {
-    var friendTracker = FriendTracker(stream, process.env.SCREEN_NAME);
-    var orator = Orator(friendTracker, stream);
+  if ('DEBUG' in process.env)
+    stream.on('data', function(obj) {
+      console.log('received object', obj);
+    }).on('keepalive', function() {
+      console.log('received keepalive');
+    });
 
-    orator.on('say', say);
+  orator.on('say', say);
 
-    console.log("Twitter stream initialized.");
-    if (process.env.TEST_SAY) {
-      say("Yo yo this is " + friendTracker.screenName + "!");
-      say("I am ready to rock.");
-    }
-  });
+  console.log("Twitter stream initialized.");
+  if (process.env.TEST_SAY) {
+    say("Yo yo this is " + friendTracker.screenName + "!");
+    say("I am ready to rock.");
+  }
 }
 
 if (!module.parent) main();
