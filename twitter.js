@@ -53,6 +53,23 @@ Twitter.prototype = {
     req.end();
 
     return objectStream;
+  },
+  directMessage: function(screen_name, text, cb) {
+    var req = this.oauth.post(
+      'https://api.twitter.com/1.1/direct_messages/new.json',
+      this.options.access_token_key,
+      this.options.access_token_secret, {
+        screen_name: screen_name,
+        text: text
+      }
+    );
+    req.on('response', function(res) {
+      if (res.statusCode != 200)
+        return cb(new Error('got status code ' + res.statusCode));
+      cb(null, res);
+    });
+    req.on('error', cb);
+    req.end();
   }
 };
 
