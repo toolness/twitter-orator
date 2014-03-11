@@ -106,7 +106,7 @@ function main() {
   });
   var stream = twit.streamUser();
   var friendTracker = FriendTracker(stream, process.env.SCREEN_NAME);
-  var filter = FriendDmAndMentionFilter(friendTracker);
+  var friendDmAndMentionFilter = FriendDmAndMentionFilter(friendTracker);
   var orator = Orator();
   var tts = TextToSpeech(sayPath);
 
@@ -120,7 +120,7 @@ function main() {
   tts.on('spoke', function(msg) {
     console.log("Done saying", JSON.stringify(msg.toString()));
   });
-  stream.pipe(filter).pipe(orator).pipe(tts);
+  stream.pipe(friendDmAndMentionFilter).pipe(orator).pipe(tts);
 
   console.log("Twitter stream initialized.");
   if (process.env.TEST_SAY) {
