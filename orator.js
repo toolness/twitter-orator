@@ -1,7 +1,6 @@
 var EventEmitter = require('events').EventEmitter;
 var Writable = require('stream').Writable;
 var exec = require('child_process').exec;
-var async = require('async');
 var through = require('through');
 var twitter = require('./twitter');
 
