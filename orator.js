@@ -58,7 +58,8 @@ function Orator(friendTracker, stream) {
 
     if (!data || typeof(data) != 'object') return;
     if (data.direct_message && typeof(data.direct_message == 'object') &&
-        data.direct_message.sender)
+        data.direct_message.sender &&
+        data.direct_message.sender.screen_name != screenName)
       return emitDirectMessage(data.direct_message);
     if (data.text && typeof(data.text) == 'string' &&
         data.user && data.user.id && friendTracker.isFriend(data.user.id) &&

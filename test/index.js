@@ -4,6 +4,8 @@ var should = require('should');
 var say = require('../orator');
 var sample = require('./sample-data');
 
+function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
 describe('FriendTracker', function() {
   var FriendTracker = say.FriendTracker;
 
@@ -36,6 +38,13 @@ describe('Orator', function() {
     orator = Orator(tracker, stream);
     says = [];
     orator.on('say', says.push.bind(says));
+  });
+
+  it('does not say direct messages from itself', function() {
+    var dm = clone(sample.DM);
+    dm.direct_message.sender = dm.direct_message.recipient;
+    stream.emit('data', dm);
+    says.should.eql([]);
   });
 
   it('says direct messages from friends', function() {
