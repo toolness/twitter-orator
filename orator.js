@@ -1,4 +1,5 @@
 var EventEmitter = require('events').EventEmitter;
+var Writable = require('stream').Writable;
 var exec = require('child_process').exec;
 var async = require('async');
 var through = require('through');
@@ -76,22 +77,27 @@ function Orator() {
   });
 }
 
+function TextToSpeech(sayPath) {
+  var self = new Writable();
+
+  self._write = function(chunk, encoding, cb) {
+    var s = exec(sayPath, function(err) {
+      if (err) return cb(err);
+      self.emit('spoke', chunk);
+      cb();
+    });
+    s.stdin.end(chunk, encoding);
+  };
+
+  return self;
+}
+
 exports.FriendDmAndMentionFilter = FriendDmAndMentionFilter;
 exports.Orator = Orator;
 exports.FriendTracker = FriendTracker;
 
 function main() {
   var sayPath = process.env.SAY_CMD || '/usr/bin/say -f -';
-  var queue = async.queue(function sayIt(msg, cb) {
-    var s = exec(sayPath, cb);
-    s.stdin.end(msg);
-  }, 1);
-  var say = function(msg) {
-    queue.push(msg, function(err) {
-      console.log("Done saying", JSON.stringify(msg));
-      if (err) console.err(err);
-    });
-  };
   var twit = new twitter({
     consumer_key: process.env.CONSUMER_KEY,
     consumer_secret: process.env.CONSUMER_SECRET,
@@ -102,6 +108,7 @@ function main() {
   var friendTracker = FriendTracker(stream, process.env.SCREEN_NAME);
   var filter = FriendDmAndMentionFilter(friendTracker);
   var orator = Orator();
+  var tts = TextToSpeech(sayPath);
 
   if ('DEBUG' in process.env)
     stream.on('data', function(obj) {
@@ -110,13 +117,15 @@ function main() {
       console.log('received keepalive');
     });
 
-  orator.on('data', say);
-  stream.pipe(filter).pipe(orator);
+  tts.on('spoke', function(msg) {
+    console.log("Done saying", JSON.stringify(msg.toString()));
+  });
+  stream.pipe(filter).pipe(orator).pipe(tts);
 
   console.log("Twitter stream initialized.");
   if (process.env.TEST_SAY) {
-    say("Yo yo this is " + friendTracker.screenName + "!");
-    say("I am ready to rock.");
+    tts.write("Yo yo this is " + friendTracker.screenName + "!");
+    tts.write("I am ready to rock.");
   }
 }
 
