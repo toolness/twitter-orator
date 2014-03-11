@@ -96,30 +96,29 @@ exports.Orator = Orator;
 exports.FriendTracker = FriendTracker;
 
 function main() {
-  var sayPath = process.env.SAY_CMD || '/usr/bin/say -f -';
   var twit = new twitter({
     consumer_key: process.env.CONSUMER_KEY,
     consumer_secret: process.env.CONSUMER_SECRET,
     access_token_key: process.env.ACCESS_TOKEN_KEY,
     access_token_secret: process.env.ACCESS_TOKEN_SECRET
   });
-  var stream = twit.streamUser();
-  var friendTracker = FriendTracker(stream, process.env.SCREEN_NAME);
-  var friendDmAndMentionFilter = FriendDmAndMentionFilter(friendTracker);
-  var orator = Orator();
-  var tts = TextToSpeech(sayPath);
+  var userStream = twit.streamUser();
+  var friendTracker = FriendTracker(userStream, process.env.SCREEN_NAME);
+  var tts = TextToSpeech(process.env.SAY_CMD || '/usr/bin/say -f -');
 
   if ('DEBUG' in process.env)
-    stream.on('data', function(obj) {
+    userStream.on('data', function(obj) {
       console.log('received object', obj);
     }).on('keepalive', function() {
       console.log('received keepalive');
     });
 
-  tts.on('spoke', function(msg) {
-    console.log("Done saying", JSON.stringify(msg.toString()));
-  });
-  stream.pipe(friendDmAndMentionFilter).pipe(orator).pipe(tts);
+  userStream
+    .pipe(FriendDmAndMentionFilter(friendTracker))
+    .pipe(Orator())
+    .pipe(tts).on('spoke', function(msg) {
+      console.log("Done saying", JSON.stringify(msg.toString()));
+    });
 
   console.log("Twitter stream initialized.");
   if (process.env.TEST_SAY) {
