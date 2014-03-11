@@ -64,6 +64,7 @@ function Orator(friendTracker, stream) {
     if (data.text && typeof(data.text) == 'string' &&
         data.user && data.user.id && friendTracker.isFriend(data.user.id) &&
         data.user.screen_name &&
+        data.user.screen_name != screenName &&
         data.entities && Array.isArray(data.entities.user_mentions) &&
         data.entities.user_mentions.filter(mentionsOf(screenName)).length)
       return emitMention(data);

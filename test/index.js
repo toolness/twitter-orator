@@ -52,6 +52,13 @@ describe('Orator', function() {
     says.should.eql(['direct message from toolness: this is a test']);
   });
 
+  it('does not say mentions from self', function() {
+    var mention = clone(sample.MENTION);
+    mention.user = clone(sample.DM.direct_message.recipient);
+    stream.emit('data', mention);
+    says.should.eql([]);
+  });
+
   it('says mentions from friends', function() {
     stream.emit('data', sample.MENTION);
     says.should.eql(['toolness says @mozbrooklyn this is a test!']);
