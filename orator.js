@@ -1,6 +1,7 @@
 var EventEmitter = require('events').EventEmitter;
 var exec = require('child_process').exec;
 var async = require('async');
+var through = require('through');
 var twitter = require('./twitter');
 
 function FriendTracker(stream, screenName) {
@@ -41,38 +42,41 @@ function mentionsOf(screenName) {
   }
 }
 
-function Orator(friendTracker, stream) {
-  var self = new EventEmitter();
-
-  function emitDirectMessage(dm) {
-    self.emit('say', 'direct message from ' + dm.sender.screen_name + ": " +
-              dm.text);
-  }
-
-  function emitMention(mention) {
-    self.emit('say', mention.user.screen_name + ' says ' + mention.text);
-  }
-
-  stream.on('data', function(data) {
+function FriendDmAndMentionFilter(friendTracker) {
+  return through(function(data) {
     var screenName = friendTracker.screenName;
 
     if (!data || typeof(data) != 'object') return;
     if (data.direct_message && typeof(data.direct_message == 'object') &&
         data.direct_message.sender &&
         data.direct_message.sender.screen_name != screenName)
-      return emitDirectMessage(data.direct_message);
+      return this.queue(data);
     if (data.text && typeof(data.text) == 'string' &&
         data.user && data.user.id && friendTracker.isFriend(data.user.id) &&
         data.user.screen_name &&
         data.user.screen_name != screenName &&
         data.entities && Array.isArray(data.entities.user_mentions) &&
         data.entities.user_mentions.filter(mentionsOf(screenName)).length)
-      return emitMention(data);
+      return this.queue(data);
   });
-
-  return self;
 }
 
+function Orator() {
+  return through(function(data) {
+    var dm = data.direct_message;
+    var msg;
+
+    if (dm)
+      msg = 'direct message from ' + dm.sender.screen_name + ": " + dm.text;
+    else if (data.text && data.user)
+      msg = data.user.screen_name + ' says ' + data.text;
+
+    if (msg)
+      this.queue(msg);
+  });
+}
+
+exports.FriendDmAndMentionFilter = FriendDmAndMentionFilter;
 exports.Orator = Orator;
 exports.FriendTracker = FriendTracker;
 
@@ -96,7 +100,8 @@ function main() {
   });
   var stream = twit.streamUser();
   var friendTracker = FriendTracker(stream, process.env.SCREEN_NAME);
-  var orator = Orator(friendTracker, stream);
+  var filter = FriendDmAndMentionFilter(friendTracker);
+  var orator = Orator();
 
   if ('DEBUG' in process.env)
     stream.on('data', function(obj) {
@@ -105,7 +110,8 @@ function main() {
       console.log('received keepalive');
     });
 
-  orator.on('say', say);
+  orator.on('data', say);
+  stream.pipe(filter).pipe(orator);
 
   console.log("Twitter stream initialized.");
   if (process.env.TEST_SAY) {

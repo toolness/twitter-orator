@@ -1,10 +1,25 @@
 var EventEmitter = require('events').EventEmitter;
+var Readable = require('stream').Readable;
 var should = require('should');
 
 var say = require('../orator');
 var sample = require('./sample-data');
 
 function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+function pipeIntoAndExpect(target, items, expectation, done) {
+  var allData = [];
+  var stream = new Readable({objectMode: true});
+
+  items.forEach(function(data) { stream.push(data); });
+  stream.push(null);
+  stream.pipe(target).on('data', function(data) {
+    allData.push(data);
+  }).on('end', function() {
+    allData.should.eql(expectation);
+    done();
+  });    
+}
 
 describe('FriendTracker', function() {
   var FriendTracker = say.FriendTracker;
@@ -25,48 +40,61 @@ describe('FriendTracker', function() {
   });
 });
 
-describe('Orator', function() {
-  var Orator = say.Orator;
-  var orator, says, stream, tracker;
+describe('FriendDmAndMentionFilter', function() {
+  var FriendDmAndMentionFilter = say.FriendDmAndMentionFilter;
+  var filter, tracker, pipeAndExpect;
 
   beforeEach(function() {
     tracker = {
       screenName: 'mozbrooklyn',
       isFriend: function() { return true; }
     };
-    stream = new EventEmitter();
-    orator = Orator(tracker, stream);
-    says = [];
-    orator.on('say', says.push.bind(says));
+    filter = FriendDmAndMentionFilter(tracker);
+    pipeAndExpect = pipeIntoAndExpect.bind(null, filter);
   });
 
-  it('does not say direct messages from itself', function() {
+  it('ignores direct messages from itself', function(done) {
     var dm = clone(sample.DM);
     dm.direct_message.sender = dm.direct_message.recipient;
-    stream.emit('data', dm);
-    says.should.eql([]);
+    pipeAndExpect([dm], [], done);
   });
 
-  it('says direct messages from friends', function() {
-    stream.emit('data', sample.DM);
-    says.should.eql(['direct message from toolness: this is a test']);
+  it('keeps direct messages from friends', function(done) {
+    pipeAndExpect([sample.DM], [sample.DM], done);
   });
 
-  it('does not say mentions from self', function() {
+  it('ignores mentions from self', function(done) {
     var mention = clone(sample.MENTION);
     mention.user = clone(sample.DM.direct_message.recipient);
-    stream.emit('data', mention);
-    says.should.eql([]);
+    pipeAndExpect([mention], [], done);
   });
 
-  it('says mentions from friends', function() {
-    stream.emit('data', sample.MENTION);
-    says.should.eql(['toolness says @mozbrooklyn this is a test!']);
+  it('keeps mentions from friends', function(done) {
+    pipeAndExpect([sample.MENTION], [sample.MENTION], done);
   });
 
-  it('ignores mentions from non-friends', function() {
+  it('ignores mentions from non-friends', function(done) {
     tracker.isFriend = function() { return false; };
-    stream.emit('data', sample.MENTION);
-    says.should.eql([]);
+    pipeAndExpect([sample.MENTION], [], done);
   });
+});
+
+describe('Orator', function() {
+  var Orator = say.Orator;
+
+  it('should process direct messages', function(done) {
+    pipeIntoAndExpect(Orator(), [sample.DM], [
+      'direct message from toolness: this is a test'
+    ], done);
+  });
+
+  it('should process tweets', function(done) {
+    pipeIntoAndExpect(Orator(), [sample.MENTION], [
+      'toolness says @mozbrooklyn this is a test!'
+    ], done);
+  });
+
+  it('should ignore everything else', function(done) {
+    pipeIntoAndExpect(Orator(), [{lol: 'cat'}], [], done);
+  });  
 });
