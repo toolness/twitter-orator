@@ -3,6 +3,7 @@ var Writable = require('stream').Writable;
 var exec = require('child_process').exec;
 var through = require('through');
 var twitter = require('./twitter');
+var CommandProcessor = require('command-processor');
 
 function FriendTracker(stream, screenName) {
   var friends = {};
@@ -115,6 +116,7 @@ function main() {
 
   userStream
     .pipe(FriendDmAndMentionFilter(friendTracker))
+    .pipe(CommandProcessor(__dirname + '/commands'))
     .pipe(Orator())
     .pipe(tts).on('spoke', function(msg) {
       console.log("Done saying", JSON.stringify(msg.toString()));
